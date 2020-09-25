@@ -1,0 +1,9 @@
+{
+    "scripts": {
+        "dev": "vuepress dev docs",
+        "build": "vuepress build docs"
+    },
+    "devDependencies": {
+        "webpack": "^4.43.0"
+    }
+}
