@@ -342,19 +342,80 @@
   #### 总结
 
   通过上面的代码我们大致知道了优先级的顺序：**new绑定 > 显式绑定 > 隐式绑定 > 默认绑定**
-   
-
-
-  
-
-
-
-
-
-
   
   
   ## 对象
+  这个地方我们来讲一下JavaScript中的对象，首先说明一下为什么讲的是原型和this，却还要讲一下对象这个呢？因为不管是理解this的指向还是原型，都离不开对象的使用，所以我们这个地方来详细的讲一下JavaScript中的对象到底是什么：
+
+  ### 语法
+  先从简单的讲起，对象定义的两种形式：声明(文字)形式和构造形式
+
+  1. 声明(文字)形式
+  ```javascript
+  var obj = {
+    key:value,
+    ...
+  }
+  ```
+  2. 构造形式
+  ```javascript
+  var obj = new Object()
+  obj.key = value
+  ```
+  两种形式生成的对象都是一样的，区别就是声明(文字)形式的话可以一次声明多个属性，而构造形式需要一个一个添加
+  ### 类型
+  JavaScript中一共有6中主要类型：
+  + string
+  + number
+  + boolean
+  + null
+  + undefined
+  + Object
+
+  通过上面的分类我们可以看出来，简单基本类型不是对象（JavaScript中一切皆是对象？）
+  
+  当然除了这几个主要类型，JavaScript中还有许多特殊的对象子类型，可以称之为**复杂基础类型**  
+  例如：Function/Array,所以可以像操作对象一样操作函数或者数组，比如给他们添加属性值等
+
+  #### 内置对象
+  还有一些对象子类型，通常被称为内置对象：
+  + String
+  + Number
+  + Boolean
+  + Object
+  + Function
+  + Array
+  + Date 
+  + RegExp
+  + Error
+  在JavaScript中，他们实际上是一些内置函数，这些诶之函数可以当做构造函数使用，下面我们来主要看一下String/Number/Boolean这几个内置对象，因为他们跟我们前面说的基础类型很类似，但实际上他们更加复杂，同样的是我们还是来用代码来说明一下：
+  ```javascript 
+  var str = 'I am a string'
+  typeof str // 'string' 基础类型
+  str instanceof String // false  
+  var strObj = new String('I am a String')
+  typeof strObj // 'Object'
+  strObj instanceof String // true
+  ```
+  通过上面的例子我们可以看出来这两个是不同的类型，而且String是Object的子类型，那提供这个内置对象是有什么用处呢？为什么要提供这些基础类型对应的对象类型呢？下面我们来思考一下下面这段代码：  
+  ```javascript 
+  var str = 'I am a string'
+  console.log(str.length) // 13
+  console.log(str.charAt(3)) // 'm'
+  ```
+  不知道同学们发现没有如果我们给一个string类型的变量绑定一个属性的话是不会生效的： 
+  ```javascript 
+  var str = 'I am a string'
+  str.key = 'error' // 不会报错
+  console.log(str.key) // undefined
+  ```
+  通过上面两个例子的说明，有的同学可能已经猜到了，正常来说string类型的数据只是一个字面量，并且是一个不可变的值，如果要在一个字面量上执行一些操作怎么办呢？那就把他转换成对应的对象类型String形式，然后就可以执行一些操作了。
+  像上面我们直接访问str.length的话 实际上引擎会帮我们把string转换成对应的String类型，调用完成后在把String类型的对象销毁掉，所以我们可以在代码中直接使用这些方法不会报错，因为这些方法都是绑定在String.prototype上面的(通过原型链我们可以访问到，后面会讲到)
+  
+  ### 内容（属性）
+  上面我们说明了对象的声明方式和类型，下面我们来讲一下对象是干啥的？我感觉对象可以理解为一个存储数据的数据结构，这些存储的数据我们称为内容或者属性，为什么这么说？我们这里说的内容，也就是说这个是对象里面的这些值实际上不是存储在对象内部的，对象内部只是有对这些值得引用，  
+
+
 
 
 
