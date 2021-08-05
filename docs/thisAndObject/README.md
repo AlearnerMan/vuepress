@@ -413,12 +413,210 @@
   像上面我们直接访问str.length的话 实际上引擎会帮我们把string转换成对应的String类型，调用完成后在把String类型的对象销毁掉，所以我们可以在代码中直接使用这些方法不会报错，因为这些方法都是绑定在String.prototype上面的(通过原型链我们可以访问到，后面会讲到)
   
   ### 内容（属性）
-  上面我们说明了对象的声明方式和类型，下面我们来讲一下对象是干啥的？我感觉对象可以理解为一个存储数据的数据结构，这些存储的数据我们称为内容或者属性，为什么这么说？我们这里说的内容，也就是说这个是对象里面的这些值实际上不是存储在对象内部的，对象内部只是有对这些值得引用，  
+  上面我们说明了对象的声明方式和类型，下面我们来讲一下对象是干啥的？我感觉对象可以理解为一个存储数据的数据结构，
+  这个数据结构通过一个类似指针的方式来指向对应的数据的存储位置，从而把多个数据有序的联系在一起。
+
+  也就是说，对象中存储的值实际上不是放在对象的内部的，在引擎内部，这些值得存储方式是多种多样的，而存储在对象这个容器中的只是这些属性的名称（类似指针或者说是一个引用），指向这些值得真正的存储位置。
+  
+  #### 访问方式
+  访问对象中的值有两种方式：.操作符和[]操作符，这两个的区别就是.操作符要求属性名满足标识符的命名规范，而[]操作符可以接受任意的UTF-8/Unicode字符串作为属性名（具体啥意思咱也不太清楚，理解下来就是不符合我们常用的命名规范的属性值都可以通过这种方式来访问），**说了这么多，感觉我们需要知道[]操作符中可以使用一个变量来访问值**，举个例子看一下：
+
+  ```javascript
+  var obj = {
+    'foo':'I am Foo'
+  },
+
+  var fooStr = 'foo'
+
+  console.log(obj[fooStr]) // I am Foo 
+  ```
+  **ES6中支持我们在[]中使用表达式**
+  ```javascript
+  var preStr = 'f'
+  var obj = {
+    [preStr+'00'] : 'I am Foo'
+  }
+  ```
+  
+  #### 属性描述符
+  属性描述符就是用来描述对象属性的特性的，有三个：writable（可写）、enumerable（可枚举）、configurable（可配置）
+
+  可以使用Object.getOwnPropertyDescriptor(object,key)方法来拿到属性描述符,设置属性描述符的话可以使用Object.defineProperty(object,key,porpsConfig),下面我们还是来通过一段代码来具体说一下：  
+  ```javascript
+  var obj = {}
+  
+  Object.defineProperty(obj,'a',{
+    value:2,
+    writable:true,
+    configurable:true,
+    enumable:true
+  })
+  // 获取属性描述符
+  Object.getOwnPropertyDescriptor(obj,'a') //{value: 2, writable: true, enumerable: false, configurable: true} 
+  
+  
+  obj.b = 3
+  // 获取默认的属性描述符
+  Object.getOwnPropertyDescriptor(obj,'b') // {value: 3, writable: true, enumerable: true, configurable: true}
+  ```
 
 
+  上面我们来具体说明一下每个属性代表的什么意思：
+  1. writable（可写）
+  writable决定是否可以修改属性的值
+  ```javascript
+  var obj = {}
+
+  Object.defineProperty(obj,'a',{
+    value:2,
+    wirtable:false, // 不可修改
+    enumerable: true,
+    configurable:true,
+  })
+  console.log(obj.a) // 2
+  obj.a = 3 
+  console.log(obj.a) // 2  也就是我们的赋值操作静默失败，如果是严格模式会直接报错：TypeError错误，表示我们无法修改一个不可写的属性
+  ```
+
+  
+  2. enumerable
+  这个属性描述符控制的是属性是否会出现在对象的属性枚举中，比如for...in循环等。如果值为false，就不会出现循环中，但是值仍然可以正常的访问
+  
 
 
+  3. configurable
+  只要属性是可配置的，我们就可以使用defineProperty()方法来修改属性的描述符：
+  ``` javascript
+  var obj = {}
 
+  obj.a = 2 
+
+  Object.defineProperty(obj,'a',{
+    value:3,
+    configurable:false, // 不可配置
+    enumerable: true,
+    wirtable:true
+  })
+  
+  console.log(obj.a) // 3
+  
+  // 在尝试使用defineProperty修改属性描述符的话会报TypeError错误，所以configurable：false是单向的，无法撤销
+  Object.defineProperty(obj,'a',{  // TypeError
+    value:4,
+    configurable:true,
+    writable: true,
+    enumerable:true
+  })
+
+  ```
+  除此之外，如果属性的configurable为false的话也不能使用delete操作符删除该属性
+
+  ##### 应用
+  我们讲完了上面的属性描述符之后，可以用这几个特性来定义一些特殊的对象，来满足我们不同的要求
+  1. **对象常量**
+  结合writable：false和configurable：false就可以创建一个对象常量（不可修改，重定义和删除）：
+  ```javascript
+  var obj = {}
+
+  Object.defineProperty(obj,'FAVORITE_NUMBER',{
+    value:2,
+    wriable:false,
+    configurable:false
+  })
+  ```
+  2. **禁止扩展**
+  如果想要禁止一个对象添加新属性并且保留已有的属性，可以使用Object.preventExtensions()方法：
+  ```javascript
+  var obj = {
+    a:2
+  }
+  Object.preventExtensions(obj)
+  
+  obj.b = 3 
+
+  console.log(obj.b) // undefined
+  ```
+
+  3. **密封**
+  Object.seal()会创建一个 密封的对象，这个 方式实际上会在一个现有对象上调用Object.preventExtensions()并把现有所有属性标记为configurable：false，
+
+  所以密封之后的对象不仅**不能添加新属性，也不能重新配置或者删除任何现有属性（但是可以修改属性的值）**
+
+  4. **冻结**
+  Object.freeze()会创建一个冻结对象，这个实际上会在一个现有对象上调用Object.seal()并把所有数据访问属性标记为writable：false,这样就无法修改他们的值
+  
+  他会禁止对对象本身以及其任意直接属性的修改（这个对象引用的其他对象是不受影响的）
+  
+  #### 访问描述符
+
+  1. [[Get]]
+  当我们访问对象的属性时，实际上就是执行的[[Get]]操作，这个操作首先会在对象内部查找有没有这个属性，如果没有的话会继续查找该对象的原型链上有没有该属性，如果都没有的话返回undefined，下面我们还是来看一段代码：
+
+  ``` javascript
+  var obj = {
+    a:undefined
+  }
+  console.log(obj.a) // undefined
+  console.log(obj.b) // undefined
+  ```
+  上面两个虽然输出结果一样的，但是[[Get]]操作是不是一样的，obj.a 是在对象中找到了这个属性，这个属性值为undefined。obj.b是在对象中没有找到，然后又去原型链中也没有找到，所以返回了undefined。
+
+  
+  2. [[Put]]
+  这个操作跟我们刚才讲的[[Get]]操作相对应，就是赋值操作，但是会更加复杂一点，大致就分为两种情况：一种是对象存在这个属性，一种是不存在这个属性，并且[[Put]]也不是一个简单的赋值操作，还需要结合我们前面讲的属性描述符和访问描述符来执行赋值的操作：
+
+  + 对象中已经存在该属性：
+
+    首先检查属性是否是访问描述符，如果是就调用setter方法
+    然后检查属性的数据访问符中writable是否为false，是的话严格模式抛出错误，非严格模式静默失败
+    如果不是以上两种场景，则将该值赋值为属性的值
+  
+  + 对象中不存在该属性：
+    这个场景更加复杂，我们在后面的原型链中会继续讲到，这个地方先知道一下就好了。
+    
+  3. getter/setter
+  对象的[[Get]]和[[Put]]操作分别可以控制属性值得获取和设置
+  js也给我们提供了修改属性访问和设置的默认操作的方式：getter/setter，这两个都是函数，getter是在属性被访问的时候调用，setter是在设置对象属性值得时候被调用。
+  当我们给一个属性定义getter、setter或者两个都有时，这个属性会被定义为**访问描述符**。对于访问描述符来说，会忽略他的value和writable属性，关注他的get和set方法：
+  ```javascript
+  var obj = {
+    get a(){
+      return 2
+    }
+  }
+
+  Object.defineProperty(obj,'b',{
+    get:function(){
+      return this.a * 2
+    },
+    enumerable:true
+  })
+  console.log(obj.a) // 2
+  console.log(obj.b) // 4
+
+  // 如果重新给a/b赋值的话 因为没有set方法，会静默失败
+  obj.a = 4
+  console.log(obj.a) // 2
+  ```
+  由于上面我们只是定义了属性a的getter方法，所以对属性a的赋值操作会静默失败，
+  下面我们来定义一下属性a的setter方法：
+  ```javascript
+  var obj = {
+   b:2,
+   get a(){
+     return this.b
+   },
+   set a(val){
+     this.b = val *2
+   }
+
+  }
+  obj.a = 2 
+  console.log(obj.a) //4
+  console.log(obj.b) // 4
+  ```
+  ### 总结
+  我们上面详细讲了JavaScript中的对象是什么以及对象声明以及他的一些特性，所以 **JavaScript中一切皆是对象？？**
 
 
   ## 原型
